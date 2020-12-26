@@ -46,19 +46,18 @@ struct weather{
 struct weather get_weather(void);
 
 void setup() {
-	Serial.begin(9600);
-    Particle.publish("status", "start", PRIVATE);
-    Particle.function("current_conditions", current);
+  Particle.publish("status", "start", PRIVATE);
+  Particle.function("current_conditions", current);
 
-    pinMode(led1, OUTPUT);
-    digitalWrite(led1, LOW);
-    pinMode(bme_pwr, OUTPUT);
-    digitalWrite(bme_pwr, LOW);
+  pinMode(led1, OUTPUT);
+  digitalWrite(led1, LOW);
+  pinMode(bme_pwr, OUTPUT);
+  digitalWrite(bme_pwr, LOW);
 
-    current_time = Time.now();
-    next_pub = current_time - (current_time % period) + period;
-    next_sync = current_time + sync_interval;
-    delay(2000);
+  current_time = Time.now();
+  next_pub = current_time - (current_time % period) + period;
+  next_sync = current_time + sync_interval;
+  delay(2000);
 }
 
 void loop() { 
