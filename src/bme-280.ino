@@ -8,14 +8,11 @@
 #include "Particle.h"
 #include "Adafruit_BME280_RK.h"
 #include "Adafruit_Sensor.h"
-#include "Adafruit_SSD1306.h"
 #include <math.h> // isnan()
 
 
 // Temp, pressure, humidity sensor
 Adafruit_BME280 bme;
-// 128x32 oled display
-Adafruit_SSD1306 display(-1);
 
 // I2C wiring 
 #define BME_MOSI D0 // = SDA 
@@ -23,10 +20,6 @@ Adafruit_SSD1306 display(-1);
 
  int led1 = D7;  //onboard led
  int bme_pwr = D4; //bme power
-
-// Display update interval in seconds
-const int updatePeriod = 60;
-unsigned long lastUpdate = 0;
 
 // Repeat time for Publish in seconds
 // Example 900 will repeat every 15 minutes at :00, :15, :30, :45
@@ -40,8 +33,6 @@ time_t next_sync;
 
 time_t current_time;
 time_t next_pub;
-
-char buf[64];
 
 struct weather{
   float temp_c;
@@ -58,10 +49,6 @@ void setup() {
 	Serial.begin(9600);
     Particle.publish("status", "start", PRIVATE);
     Particle.function("current_conditions", current);
-
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // 128x32 display
-    display.clearDisplay();
-    display.display();
 
     pinMode(led1, OUTPUT);
     digitalWrite(led1, LOW);
