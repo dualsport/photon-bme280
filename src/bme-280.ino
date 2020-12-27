@@ -8,14 +8,11 @@
 #include "Particle.h"
 #include "Adafruit_BME280_RK.h"
 #include "Adafruit_Sensor.h"
-#include "Adafruit_SSD1306.h"
 #include <math.h> // isnan()
 
 
 // Temp, pressure, humidity sensor
 Adafruit_BME280 bme;
-// 128x32 oled display
-Adafruit_SSD1306 display(-1);
 
 // I2C wiring 
 #define BME_MOSI D0 // = SDA 
@@ -23,10 +20,6 @@ Adafruit_SSD1306 display(-1);
 
  int led1 = D7;  //onboard led
  int bme_pwr = D4; //bme power
-
-// Display update interval in seconds
-const int updatePeriod = 60;
-unsigned long lastUpdate = 0;
 
 // Repeat time for Publish in seconds
 // Example 900 will repeat every 15 minutes at :00, :15, :30, :45
@@ -41,8 +34,6 @@ time_t next_sync;
 time_t current_time;
 time_t next_pub;
 
-char buf[64];
-
 struct weather{
   float temp_c;
   float temp_f;
@@ -55,81 +46,30 @@ struct weather{
 struct weather get_weather(void);
 
 void setup() {
-	Serial.begin(9600);
-    Particle.publish("status", "start", PRIVATE);
-    Particle.function("current_conditions", current);
+  Particle.publish("status", "start", PRIVATE);
+  Particle.function("current_conditions", current);
 
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // 128x32 display
-    display.clearDisplay();
-    display.display();
+  pinMode(led1, OUTPUT);
+  digitalWrite(led1, LOW);
+  pinMode(bme_pwr, OUTPUT);
+  digitalWrite(bme_pwr, LOW);
 
-    pinMode(led1, OUTPUT);
-    digitalWrite(led1, LOW);
-    pinMode(bme_pwr, OUTPUT);
-    digitalWrite(bme_pwr, LOW);
-
-    current_time = Time.now();
-    next_pub = current_time - (current_time % period) + period;
-    next_sync = current_time + sync_interval;
-    delay(2000);
+  current_time = Time.now();
+  next_pub = current_time - (current_time % period) + period;
+  next_sync = current_time + sync_interval;
+  delay(2000);
 }
 
 void loop() { 
   current_time = Time.now();
-  // Update readings
-	if (millis() - lastUpdate >= updatePeriod * 1000) {
+  // Publish results
+  if(current_time >= next_pub) {
     digitalWrite(led1, HIGH);
-		lastUpdate = millis();
-		
     struct weather w = get_weather();
-
-		display.clearDisplay();
-
-		// if we have good readings update screen & publish readings
-		if (!isnan(w.temp_c) && !isnan(w.humidity) && !isnan(w.pressure)) {
-
-      // display results
-			display.setTextSize(2);
-			display.setTextColor(WHITE);
-			
-			snprintf(buf, sizeof(buf), "%.1f Deg F", w.temp_f);
-			display.setCursor(0,0);
-			display.println(buf);
-
-			// snprintf(buf, sizeof(buf), "%.1f DwPtF", w.dewpt_f * 9.0 / 5.0 + 32.0);
-      // display.setCursor(0,24);
-			// display.println(buf);
-
-			snprintf(buf, sizeof(buf), "%.1f %% RH", w.humidity);
-      display.setCursor(0,24);
-			display.println(buf);
-
-			snprintf(buf, sizeof(buf), "%.1f InHg", w.pressure);
-      display.setCursor(0,48);
-			display.println(buf);
-
-      display.display();
-
-      // Publish results
-      if(current_time >= next_pub) {
-        String result = String::format("{\"Temp_C\": %4.2f, \"Dewpoint_C\": %4.2f, \"RelHum\": %4.2f, \"Press_InHg\": %4.2f}", w.temp_c, w.dewpt_c, w.humidity, w.pressure);
-        Particle.publish("readings", result, PRIVATE);
-        next_pub = current_time - (current_time % period) + period;
-      }
-  	}
-    else {
-      display.clearDisplay();
-      display.setTextSize(2);
-      display.setTextColor(WHITE);
-      display.setCursor(0,0);
-      display.println("Error");
-      display.setCursor(0,24);
-      display.println("Reading");
-      display.setCursor(0,48);
-      display.println("BME280");
-      display.display();
-    }
-   digitalWrite(led1, LOW);
+    String result = String::format("{\"Temp_C\": %4.2f, \"Dewpoint_C\": %4.2f, \"RelHum\": %4.2f, \"Press_InHg\": %4.2f}", w.temp_c, w.dewpt_c, w.humidity, w.pressure);
+    Particle.publish("readings", result, PRIVATE);
+    next_pub = current_time - (current_time % period) + period;
+    digitalWrite(led1, LOW);
   }
 
   // sync time
